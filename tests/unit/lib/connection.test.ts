@@ -20,21 +20,42 @@ describe("readApiConnection", () => {
     expect(readApiConnection(env, ["backend", "admin"])).toEqual({
       backend: "backend",
       keys: ["NEXT_PUBLIC_API_BASE_URL", "BACKEND_ORIGIN"],
+      path: "",
     });
+  });
+
+  it("{형제.url} 뒤에 붙은 경로도 연결로 읽고 경로를 따로 돌려준다", () => {
+    const env = rows({ VITE_API_URL: "{backend.url}/api", VITE_PIPELINE_API: "{backend.url}/api", X: "1" });
+    expect(readApiConnection(env, ["backend"])).toEqual({
+      backend: "backend",
+      keys: ["VITE_API_URL", "VITE_PIPELINE_API"],
+      path: "/api",
+    });
+  });
+
+  it("같은 백엔드라도 경로가 다른 키는 묶지 않는다(처음 것 기준)", () => {
+    const env = rows({ VITE_API_URL: "{backend.url}/api", WS_URL: "{backend.url}/ws", ROOT: "{backend.url}" });
+    expect(readApiConnection(env, ["backend"])).toEqual({ backend: "backend", keys: ["VITE_API_URL"], path: "/api" });
   });
 
   it.each([
     ["CORS 이름의 키", { CORS_ORIGINS: "{frontend.url}" }],
     ["형제가 아닌 이름", { VITE_API_URL: "{ghost.url}" }],
-    ["뒤에 경로가 붙은 값", { VITE_API_URL: "{backend.url}/api" }],
+    ["경로가 / 로 시작하지 않는 값", { VITE_API_URL: "{backend.url}api" }],
+    ["경로에 공백이 든 값", { VITE_API_URL: "{backend.url}/a b" }],
+    ["쉼표로 여러 주소를 이은 값", { VITE_API_URL: "{backend.url}/api,{admin.url}" }],
     ["env 가 비어 있음", {}],
   ])("%s 는 연결로 읽지 않는다", (_label: string, env: Record<string, string>) => {
-    expect(readApiConnection(rows(env), ["backend", "frontend"])).toEqual({ backend: null, keys: [] });
+    expect(readApiConnection(rows(env), ["backend", "frontend", "admin"])).toEqual({
+      backend: null,
+      keys: [],
+      path: "",
+    });
   });
 
   it("여러 백엔드를 가리키면 처음 것을 고른다", () => {
     const env = rows({ A_API_URL: "{api.url}", B_API_URL: "{backend.url}" });
-    expect(readApiConnection(env, ["api", "backend"])).toEqual({ backend: "api", keys: ["A_API_URL"] });
+    expect(readApiConnection(env, ["api", "backend"])).toEqual({ backend: "api", keys: ["A_API_URL"], path: "" });
   });
 });
 
@@ -82,26 +103,31 @@ describe("env 행 편집", () => {
 });
 
 describe("writeApiConnection", () => {
-  const none = { backend: null, keys: [] };
+  const none = { backend: null, keys: [], path: "" };
+  const connected = { backend: "backend", keys: ["VITE_API_URL"], path: "" };
 
   it("고른 백엔드를 각 변수에 {이름.url} 로 쓴다", () => {
-    expect(writeApiConnection(rows({ X: "1" }), none, "backend", ["VITE_API_URL", "API_BASE"])).toEqual(
+    expect(writeApiConnection(rows({ X: "1" }), none, "backend", ["VITE_API_URL", "API_BASE"], "")).toEqual(
       rows({ X: "1", VITE_API_URL: "{backend.url}", API_BASE: "{backend.url}" }),
     );
   });
 
-  it("백엔드를 바꾸면 같은 자리의 값만 바뀐다", () => {
-    const env = rows({ VITE_API_URL: "{backend.url}", X: "1" });
-    expect(writeApiConnection(env, { backend: "backend", keys: ["VITE_API_URL"] }, "api", ["VITE_API_URL"])).toEqual(
-      rows({ VITE_API_URL: "{api.url}", X: "1" }),
+  it("경로가 있으면 {이름.url} 뒤에 붙여 쓴다", () => {
+    expect(writeApiConnection([], none, "backend", ["VITE_API_URL", "VITE_PIPELINE_API"], "/api")).toEqual(
+      rows({ VITE_API_URL: "{backend.url}/api", VITE_PIPELINE_API: "{backend.url}/api" }),
+    );
+  });
+
+  it("백엔드를 바꾸면 같은 자리의 값만 바뀌고 경로는 유지된다", () => {
+    const env = rows({ VITE_API_URL: "{backend.url}/api", X: "1" });
+    expect(writeApiConnection(env, { ...connected, path: "/api" }, "api", ["VITE_API_URL"], "/api")).toEqual(
+      rows({ VITE_API_URL: "{api.url}/api", X: "1" }),
     );
   });
 
   it("연결 안 함이면 이전에 연결한 변수만 지운다", () => {
     const env = rows({ VITE_API_URL: "{backend.url}", X: "1" });
-    expect(writeApiConnection(env, { backend: "backend", keys: ["VITE_API_URL"] }, null, ["VITE_API_URL"])).toEqual(
-      rows({ X: "1" }),
-    );
+    expect(writeApiConnection(env, connected, null, ["VITE_API_URL"], "")).toEqual(rows({ X: "1" }));
   });
 });
 
@@ -117,7 +143,7 @@ describe("writeCorsConnection", () => {
 });
 
 describe("visibleConnections", () => {
-  const noApi = { backend: null, keys: [] };
+  const noApi = { backend: null, keys: [], path: "" };
   const noCors = { key: null, frontends: [] };
 
   it.each([
@@ -131,7 +157,7 @@ describe("visibleConnections", () => {
   });
 
   it("env 에 이미 관계가 있으면 종류와 상관없이 보인다", () => {
-    expect(visibleConnections("fastapi", { backend: "auth", keys: ["AUTH_URL"] }, noCors).api).toBe(true);
+    expect(visibleConnections("fastapi", { backend: "auth", keys: ["AUTH_URL"], path: "" }, noCors).api).toBe(true);
     expect(visibleConnections("next", noApi, { key: "CORS_ORIGINS", frontends: ["admin"] }).cors).toBe(true);
   });
 });

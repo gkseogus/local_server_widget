@@ -12,15 +12,21 @@ import {
   SECTION_TITLE_CLASS,
   SELECT_CLASS,
 } from "@/contents/form";
-import { CONNECTION_TEXT, DEFAULT_CORS_KEY, ENV_KEY_PATTERN, VALIDATION_TEXT } from "@/contents/settings";
+import {
+  API_PATH_PATTERN,
+  CONNECTION_TEXT,
+  DEFAULT_CORS_KEY,
+  ENV_KEY_PATTERN,
+  VALIDATION_TEXT,
+} from "@/contents/settings";
 import { cn } from "@/lib/cn";
 import {
+  apiRef,
   readApiConnection,
   readCorsConnection,
   removeEnvVars,
   renameEnvVar,
   setEnvVar,
-  urlRef,
   visibleConnections,
   writeApiConnection,
   writeCorsConnection,
@@ -49,21 +55,27 @@ const ConnectionSection = ({ env, siblings, detected, onChangeEnv }: ConnectionS
   const [pendingApiKeys, setPendingApiKeys] = useState<string[] | null>(null);
   const [pendingCorsKey, setPendingCorsKey] = useState<string | null>(null);
   const [corsKeyText, setCorsKeyText] = useState<string | null>(null);
+  const [pendingPath, setPendingPath] = useState("");
+  const [pathText, setPathText] = useState<string | null>(null);
 
   const apiKeys = api.backend ? api.keys : (pendingApiKeys ?? detected?.apiEnvKeys ?? []);
   const corsKey = cors.key ?? pendingCorsKey ?? detected?.corsEnvKeys[0] ?? DEFAULT_CORS_KEY;
   const corsKeyInvalid = corsKeyText !== null && !ENV_KEY_PATTERN.test(corsKeyText);
+  // 백엔드를 고르기 전이나 "연결 안 함" 으로 바꾼 뒤에도 쓰던 경로는 기억한다
+  const apiPath = api.backend ? api.path : pendingPath;
+  const pathInvalid = pathText !== null && !API_PATH_PATTERN.test(pathText);
 
   const handleBackend = (value: string): void => {
     const backend = value || null;
     // "연결 안 함" 으로 바꿔도 칩은 남겨 두어 다시 고르기 쉽게 한다
     setPendingApiKeys(apiKeys);
-    onChangeEnv(writeApiConnection(env, api, backend, apiKeys));
+    setPendingPath(apiPath);
+    onChangeEnv(writeApiConnection(env, api, backend, apiKeys, apiPath));
   };
 
   const handleAddKey = (key: string): void => {
     setPendingApiKeys([...apiKeys, key]);
-    if (api.backend) onChangeEnv(setEnvVar(env, key, urlRef(api.backend)));
+    if (api.backend) onChangeEnv(setEnvVar(env, key, apiRef(api.backend, apiPath)));
   };
 
   const handleRemoveKey = (key: string): void => {
@@ -77,6 +89,16 @@ const ConnectionSection = ({ env, siblings, detected, onChangeEnv }: ConnectionS
     // 모두 해제해 env 에서 지워져도 쓰던 변수 이름은 기억한다
     setPendingCorsKey(corsKey);
     onChangeEnv(writeCorsConnection(env, corsKey, next));
+  };
+
+  // 경로도 입력을 마칠 때 반영한다(한 글자마다 env 값이 바뀌지 않게)
+  const commitPath = (): void => {
+    if (pathText === null || pathInvalid) return;
+    if (api.backend && pathText !== api.path) {
+      onChangeEnv(writeApiConnection(env, api, api.backend, api.keys, pathText));
+    }
+    setPendingPath(pathText);
+    setPathText(null);
   };
 
   // 입력하는 도중의 이름으로 env 키가 바뀌지 않도록 입력을 마칠 때(포커스 이동·Enter) 반영한다
@@ -122,6 +144,30 @@ const ConnectionSection = ({ env, siblings, detected, onChangeEnv }: ConnectionS
                   </select>
                   <p id={`${id}-api-help`} className={HELPER_CLASS}>
                     {apiKeys.length > 0 ? CONNECTION_TEXT.apiHelper : CONNECTION_TEXT.apiNeedKey}
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor={`${id}-api-path`} className={LABEL_CLASS}>
+                    {CONNECTION_TEXT.pathLabel}
+                  </label>
+                  <input
+                    id={`${id}-api-path`}
+                    type="text"
+                    value={pathText ?? apiPath}
+                    placeholder={CONNECTION_TEXT.pathPlaceholder}
+                    onChange={(event) => setPathText(event.target.value.trim())}
+                    onBlur={commitPath}
+                    onKeyDown={(event) => event.key === "Enter" && commitPath()}
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    aria-invalid={pathInvalid}
+                    aria-describedby={`${id}-api-path-help`}
+                    className={cn(INPUT_CLASS, MONO_CLASS, "w-40", pathInvalid && INPUT_ERROR_CLASS)}
+                  />
+                  <p id={`${id}-api-path-help`} className={pathInvalid ? ERROR_TEXT_CLASS : HELPER_CLASS}>
+                    {pathInvalid ? CONNECTION_TEXT.pathInvalid : CONNECTION_TEXT.pathHelper}
                   </p>
                 </div>
                 <EnvKeyChips keys={apiKeys} onAdd={handleAddKey} onRemove={handleRemoveKey} />

@@ -1,9 +1,12 @@
 import type { ProjectKindType } from "@/types/config";
-import { URL_REF_PATTERN } from "@/contents/settings";
+import { API_REF_PATTERN, URL_REF_PATTERN } from "@/contents/settings";
 import type { ApiConnectionFace, CorsConnectionFace, EnvRowFace } from "@/types/settings";
 
 /** `{이름.url}` */
 export const urlRef = (name: string): string => `{${name}.url}`;
+
+/** `{이름.url}` + 경로 (예: `{backend.url}/api`) */
+export const apiRef = (name: string, path: string): string => `${urlRef(name)}${path}`;
 
 /** `{a.url},{b.url}` */
 export const corsValue = (frontends: string[]): string => frontends.map(urlRef).join(",");
@@ -20,17 +23,22 @@ const refList = (value: string): string[] | null => {
 };
 
 /**
- * env 에서 "API 를 보낼 백엔드" 를 역으로 읽는다: CORS 이름이 아닌 키 중 값이 정확히 `{형제.url}` 인 것.
- * 여러 백엔드를 가리키면 처음 나온 것을 고른다.
+ * env 에서 "API 를 보낼 백엔드" 를 역으로 읽는다: CORS 이름이 아닌 키 중 값이 `{형제.url}` 또는
+ * `{형제.url}/경로` 인 것. 여러 백엔드·경로를 가리키면 처음 나온 것을 고르고, 같은 백엔드·같은 경로인 키만 묶는다.
  * ponytail: CORS 이름이 아닌 키에 프론트 하나만 넣으면 API 연결로 읽힌다 — 키 이름 말고는 구분할 단서가 없다.
  */
 export const readApiConnection = (env: EnvRowFace[], siblings: string[]): ApiConnectionFace => {
-  const backendOf = (row: EnvRowFace): string | null => {
-    const name = isCorsKey(row.key) ? null : refName(row.value);
-    return name !== null && row.value === urlRef(name) && siblings.includes(name) ? name : null;
+  const refOf = (row: EnvRowFace): { backend: string; path: string } | null => {
+    const match = isCorsKey(row.key) ? null : API_REF_PATTERN.exec(row.value.trim());
+    return match && siblings.includes(match[1]) ? { backend: match[1], path: match[2] ?? "" } : null;
   };
-  const backend = env.map(backendOf).find((name) => name !== null) ?? null;
-  return { backend, keys: backend ? env.filter((row) => backendOf(row) === backend).map((row) => row.key) : [] };
+  const first = env.map(refOf).find((ref) => ref !== null) ?? null;
+  if (!first) return { backend: null, keys: [], path: "" };
+  const same = (row: EnvRowFace): boolean => {
+    const ref = refOf(row);
+    return ref !== null && ref.backend === first.backend && ref.path === first.path;
+  };
+  return { backend: first.backend, keys: env.filter(same).map((row) => row.key), path: first.path };
 };
 
 /** env 에서 "접속을 허용할 프론트" 를 역으로 읽는다: CORS 이름이거나 여러 개를 쉼표로 이은 형제 주소 목록. */
@@ -56,15 +64,16 @@ export const removeEnvVars = (env: EnvRowFace[], keys: string[]): EnvRowFace[] =
 export const renameEnvVar = (env: EnvRowFace[], from: string, to: string): EnvRowFace[] =>
   env.map((row) => (row.key === from ? { ...row, key: to } : row));
 
-/** 백엔드를 고르면 각 변수 = `{백엔드.url}`, "연결 안 함" 이면 이전에 연결했던 변수를 지운다. */
+/** 백엔드를 고르면 각 변수 = `{백엔드.url}` + 경로, "연결 안 함" 이면 이전에 연결했던 변수를 지운다. */
 export const writeApiConnection = (
   env: EnvRowFace[],
   previous: ApiConnectionFace,
   backend: string | null,
   keys: string[],
+  path: string,
 ): EnvRowFace[] =>
   backend
-    ? keys.reduce((rows, key) => setEnvVar(rows, key, urlRef(backend)), env)
+    ? keys.reduce((rows, key) => setEnvVar(rows, key, apiRef(backend, path)), env)
     : removeEnvVars(env, previous.keys);
 
 /** 체크한 프론트가 있으면 `key = {a.url},{b.url}`, 없으면 그 변수를 지운다. */
