@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* base 레이어에 둬서 Tailwind 유틸리티(select-text, cursor-pointer 등)가 항상 이기게 함 */
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  /* 창 전체 높이, 스크롤은 앱 내부에서만 */
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* 위젯이라 텍스트 선택·I빔 커서 끔 (자식이 상속). .select-text 요소만 선택 가능 */
+  body {
+    background-color: var(--color-zinc-950);
+    color: var(--color-zinc-100);
+    font-family: -apple-system, "SF Pro Text", "Apple SD Gothic Neo", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+  }
+
+  /* 얇은 다크 스크롤바 (WebKit) */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-zinc-700);
+    border-radius: 3px;
+  }
+}

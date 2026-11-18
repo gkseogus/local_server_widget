@@ -1,0 +1,20 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "main 창 권한 — 드래그·닫기와 localhost URL 열기만 허용 (앱 명령은 별도 허용)",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:window:allow-start-dragging",
+    "core:window:allow-internal-toggle-maximize",
+    "core:window:allow-close",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "http://localhost:*" },
+        { "url": "http://localhost:*/*" }
+      ]
+    }
+  ]
+}
