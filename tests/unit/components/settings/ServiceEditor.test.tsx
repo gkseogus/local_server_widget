@@ -169,6 +169,50 @@ describe("ServiceEditor — 연결과 미리보기", () => {
     expect(within(preview()).getByText("NEXT_PUBLIC_API_BASE_URL=http://localhost:5173")).toBeInTheDocument();
   });
 
+  it("{backend.url}/api 처럼 경로가 붙은 연결도 읽고, 백엔드를 바꿔도 경로를 유지하며 경로를 고칠 수 있다", async () => {
+    mockCommands({});
+    const config = makeAcmeConfig();
+    const [backend, , admin] = config.groups[0].services;
+    admin.env = { VITE_API_URL: "{backend.url}/api", VITE_PIPELINE_API: "{backend.url}/api" };
+    renderWithClient(<Harness initial={toDraft(config)} serviceIndex={2} />);
+
+    const select = screen.getByLabelText(CONNECTION_TEXT.apiLabel);
+    const path = field(CONNECTION_TEXT.pathLabel);
+    expect(select).toHaveValue("backend");
+    expect(path).toHaveValue("/api");
+    expect(within(preview()).getByText(`VITE_API_URL=http://localhost:${backend.port}/api`)).toBeInTheDocument();
+
+    // 다른 서버를 골라도 /api 는 그대로 붙는다
+    await userEvent.selectOptions(select, "frontend");
+    expect(within(preview()).getByText("VITE_API_URL=http://localhost:3100/api")).toBeInTheDocument();
+    expect(within(preview()).getByText("VITE_PIPELINE_API=http://localhost:3100/api")).toBeInTheDocument();
+
+    // 경로를 바꾸면 입력을 마칠 때 두 변수 모두 바뀐다
+    await userEvent.clear(path);
+    await userEvent.type(path, "/v2{Enter}");
+    expect(within(preview()).getByText("VITE_API_URL=http://localhost:3100/v2")).toBeInTheDocument();
+    expect(within(preview()).getByText("VITE_PIPELINE_API=http://localhost:3100/v2")).toBeInTheDocument();
+
+    // 잘못된 경로는 알리고 반영하지 않는다
+    await userEvent.clear(path);
+    await userEvent.type(path, "v3{Enter}");
+    expect(path).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText(CONNECTION_TEXT.pathInvalid)).toBeInTheDocument();
+    expect(within(preview()).getByText("VITE_API_URL=http://localhost:3100/v2")).toBeInTheDocument();
+  });
+
+  it("백엔드를 고르기 전에 적은 경로는 연결할 때 함께 들어간다", async () => {
+    mockCommands({ detect_project: () => makeProjectInfo({ kind: "vite", apiEnvKeys: ["VITE_API_URL"] }) });
+    renderWithClient(<Harness initial={withNew({ name: "web", cwd: "~/Desktop/acme_web", port: 5180, command: "run" })} serviceIndex={3} />);
+    await waitFor(() => expect(screen.getByLabelText(CONNECTION_TEXT.apiLabel)).toBeEnabled());
+
+    await userEvent.type(field(CONNECTION_TEXT.pathLabel), "/api");
+    await userEvent.tab();
+    await userEvent.selectOptions(screen.getByLabelText(CONNECTION_TEXT.apiLabel), "frontend");
+
+    expect(within(preview()).getByText("VITE_API_URL=http://localhost:3100/api")).toBeInTheDocument();
+  });
+
   it("CORS 체크박스는 체크한 서버 주소를 쉼표로 이어 쓴다", async () => {
     mockCommands({ detect_project: () => makeProjectInfo({ corsEnvKeys: ["BACKEND_CORS_ORIGINS"] }) });
     renderWithClient(<Harness initial={withNew({ name: "api", cwd: "~/Desktop/acme_api", port: 8100, command: "run" })} serviceIndex={3} />);

@@ -48,6 +48,8 @@ export interface ValidationIssueFace {
 export interface ApiConnectionFace {
   backend: string | null;
   keys: string[];
+  /** 백엔드 주소 뒤에 붙는 경로 (예: "/api"). 없으면 "" */
+  path: string;
 }
 
 /** "이 서버에 접속을 허용할 프론트" — env 에서 역으로 읽은 값 */
