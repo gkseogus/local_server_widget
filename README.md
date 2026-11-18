@@ -1,60 +1,73 @@
-# 로컬서버 위젯
+# Local Server Widget
 
-프로젝트마다 로컬 포트가 제각각(8000/8001/8002)이라 프론트가 엉뚱한 백엔드를 보는 일이 잦았다.
-이 위젯은 프로젝트 그룹(백엔드·프론트·어드민)별 로컬 서버를 항상 위에 떠 있는 작은 창에서 보여 주고,
-켜고 끄며, 켤 때 포트와 API 주소 env 를 주입해 프론트가 같은 그룹의 백엔드를 보게 한다.
-프로젝트의 `.env` 파일은 건드리지 않는다.
+**English** | [한국어](README.ko.md)
 
-- 서비스별 ON/OFF, 그룹 전체 켜기/끄기
-- 상세: 포트, URL, PID, 실행 명령, 작업 폴더, 시작 시각, 출처(위젯/외부), 주입한 env, 로그 열기
-- 터미널에서 띄운 서버도 포트로 감지해 표시하고 끌 수 있다
-- 설정 창: 폴더만 고르면 프로젝트 종류·실행 명령·포트를 채우고, 백엔드↔프론트 연결을 클릭으로 만든다(JSON 을 몰라도 된다)
-- 프레임 없는 창(340×520), 항상 위, 모든 Space 에 표시, 헤더를 끌어 이동(더블클릭해도 최대화되지 않음), 마지막 위치 기억
-- macOS 전용
+An always-on-top macOS widget that starts and stops your local dev servers per project, and points each frontend at the right backend port.
 
-## 설치·실행
+<img src="docs/images/widget.png" width="340" alt="The widget showing two project groups: acme with backend, frontend and admin running, and shop turned off">
 
-준비물: Node + pnpm, Xcode Command Line Tools, Rust(stable, [rustup](https://rustup.rs) 으로 설치).
+## Download
 
-```sh
-pnpm install
-pnpm tauri dev      # 개발 실행 (첫 빌드는 몇 분 걸림)
-pnpm tauri build    # 배포용 앱 → src-tauri/target/release/bundle/macos/
-```
+Download the `.dmg` from [Releases](https://github.com/gkseogus/local_server_widget/releases/latest), open it, and move `Local Server Widget.app` to the Applications folder.
+macOS only. The app is a universal build for both Apple Silicon and Intel.
 
-실행 중에는 Dock 에 아이콘이 보인다. 위젯은 헤더의 닫기 버튼이나 Dock 에서 종료한다.
-위젯을 종료해도 위젯이 띄운 서버는 계속 돈다.
+The app is ad-hoc signed and not notarized by Apple, so macOS blocks it the first time you open it. Open it in one of two ways:
 
-## 설정 창
+- Try to open it once, then go to System Settings → Privacy & Security and click "Open Anyway".
+- Remove the quarantine attribute in Terminal:
 
-위젯 헤더의 설정 아이콘(또는 서버가 없을 때 "서버 추가하기")을 누르면 `로컬서버 설정` 창이 열린다.
+  ```sh
+  xattr -dr com.apple.quarantine "/Applications/Local Server Widget.app"
+  ```
 
-1. **프로젝트 추가** → 프로젝트 폴더를 고른다. FastAPI(`.venv/bin/uvicorn`), Next.js, Vite 를 알아보고
-   이름·실행 명령·포트를 채운다. `acme_frontend` 같은 폴더면 프로젝트 `acme`, 서버 `frontend` 로 제안한다.
-   이미 입력한 값은 덮어쓰지 않는다(명령은 "감지된 명령으로" 버튼으로 직접 적용).
-2. **연결**에서 클릭으로 백엔드↔프론트를 잇는다.
-   - 프론트(Next·Vite): "이 서버가 API 를 보낼 백엔드" 를 고르면, 프로젝트의 `.env*` 에서 찾은 API 주소 변수
-     (예: `NEXT_PUBLIC_API_BASE_URL`, `VITE_API_URL`)에 그 백엔드 주소 템플릿이 들어간다. 변수는 칩으로 더하고 뺀다.
-     API 가 `/api` 같은 경로 아래에 있으면 "주소 뒤 경로" 에 적는다. 그러면 값이 `{backend.url}/api` 가 되고,
-     백엔드를 바꿔도 경로는 유지된다. 이미 `{이름.url}/경로` 꼴로 적힌 env 도 연결로 읽어 보여 준다.
-   - 백엔드(FastAPI): "접속을 허용할 프론트(CORS)" 를 체크하면 `CORS_ORIGINS`(감지된 이름)에 주소들이 쉼표로 들어간다.
-   - `.env*` 에서는 변수 **이름만** 읽고 값은 읽어 두지 않는다.
-3. **실행되는 모습**에서 템플릿이 실제 포트로 바뀐 명령과 env 를 확인하고 **저장**(⌘S)한다.
-   이름·포트 중복, 빈 명령, 없는 서버 참조 같은 문제는 저장 전에 칸 아래와 하단 바("고칠 곳 n개")에 표시되고 저장이 막힌다.
-   저장은 전체 검증을 통과해야만 파일을 원자적으로 바꾼다.
-4. 실행 중인 서버를 고쳤다면 위젯에서 껐다 켜야 반영된다(창에 안내가 뜬다).
+The UI is currently Korean only.
 
-삭제(프로젝트·서버)는 한 번 더 확인을 받는다. 고급 설정은 "환경변수(고급)" 칸에서 직접 넣을 수 있고,
-사이드바 아래 "JSON 직접 편집" 으로 파일을 열 수도 있다.
+## Why
 
-## 설정 파일
+Every project used a different local port (8000/8001/8002), so a frontend often ended up talking to the wrong backend.
+This widget shows the local servers of each project group (backend, frontend, admin) in a small always-on-top window
+and starts and stops them. When it starts a server, it injects the port and the API address env vars so the frontend talks to the backend in the same group.
+It never touches your project's `.env` files.
 
-위치: `~/Library/Application Support/com.hdh.localserverwidget/services.json`
+## Features
 
-처음 실행할 때 파일이 없으면 바로 동작하는 예시로 만들어진다. 설정 파일 옆의 앱 전용 빈 폴더 `example-site` 를
-`python3 -m http.server` 로 `127.0.0.1` 에만 서비스한다(공용 `/tmp` 같은 폴더를 서비스하면 다른 계정이 내 파일을 받아 갈 수 있다).
-있으면 절대 덮어쓰지 않는다. 보통은 위의 설정 창으로 고치고, 파일을 직접 고쳐도 된다.
-고친 내용은 다음 상태 조회(3초 간격) 때 위젯에 반영된다. 파일이 깨져 읽을 수 없으면 위젯에 오류와 "설정 파일 열기" 버튼이 나온다.
+- Turn each service ON/OFF, or start/stop a whole group
+- Details: port, URL, PID, command, working folder, start time, origin (widget or external), injected env, open log
+- Servers started from a terminal are also detected by port, shown, and can be stopped
+- Settings window: pick a folder and it fills in the project type, command, and port; connect backends and frontends by clicking (no JSON knowledge needed)
+- Frameless window (340×520), always on top, shown on every Space, moved by dragging the header (double-click does not maximize it), remembers its last position
+- macOS only
+
+## Quick start
+
+Click the settings icon in the widget header (or "Add server (서버 추가하기)" when there are no servers) to open the Local Server Settings window (`로컬서버 설정`).
+
+1. **Add project (프로젝트 추가)** → pick the project folder. It recognizes FastAPI (`.venv/bin/uvicorn`), Next.js, and Vite,
+   and fills in the name, command, and port. For a folder like `acme_frontend`, it suggests project `acme` and server `frontend`.
+   It does not overwrite values you have already entered (to apply the detected command, use the "Use detected command (감지된 명령으로)" button).
+2. In **Connections (연결)**, link backends and frontends by clicking.
+   - Frontend (Next, Vite): choose "Backend this server sends API requests to (이 서버가 API 를 보낼 백엔드)", and that backend's address template goes into
+     the API address variables found in the project's `.env*` files (e.g. `NEXT_PUBLIC_API_BASE_URL`, `VITE_API_URL`). Add and remove variables as chips.
+     If the API lives under a path such as `/api`, enter it in "Path after address (주소 뒤 경로)". The value then becomes `{backend.url}/api`,
+     and the path is kept when you switch backends. Env values already written in the form `{name.url}/path` are also read back and shown as connections.
+   - Backend (FastAPI): check "Frontends allowed to connect (CORS) (이 서버에 접속을 허용할 프론트 (CORS))", and their addresses go into `CORS_ORIGINS` (the detected name), separated by commas.
+   - From `.env*` files, only variable **names** are kept; values are not kept.
+3. In **Preview (실행되는 모습)**, check the command and env with templates replaced by real ports, then **Save (저장)** (⌘S).
+   Problems such as duplicate names or ports, empty commands, and references to missing servers are shown before saving, under the field and in the bottom bar ("n issues to fix (고칠 곳 n개)"), and saving is blocked.
+   Saving replaces the file atomically, and only after the whole config passes validation.
+4. If you edited a running server, stop and start it in the widget for the change to take effect (the window tells you so).
+
+Deleting a project or server asks for confirmation once more. For advanced settings, you can enter values directly in the "Environment variables (advanced) (환경변수 (고급))" field,
+and you can also open the file with "Edit JSON directly (JSON 직접 편집)" at the bottom of the sidebar.
+
+## Configuration file
+
+Location: `~/Library/Application Support/com.hdh.localserverwidget/services.json`
+
+On first launch, if the file does not exist, it is created as an example that works right away. The example serves `example-site`, an empty app-only folder next to the config file,
+with `python3 -m http.server` on `127.0.0.1` only (serving a shared folder such as `/tmp` could let other accounts download your files).
+An existing file is never overwritten. You usually edit it through the settings window above, but you can also edit the file directly.
+Changes show up in the widget on the next status poll (every 3 seconds). If the file is broken and cannot be read, the widget shows the error and an "Open config file (설정 파일 열기)" button.
 
 ```json
 {
@@ -89,120 +102,139 @@ pnpm tauri build    # 배포용 앱 → src-tauri/target/release/bundle/macos/
 }
 ```
 
-| 필드 | 설명 |
+| Field | Description |
 |---|---|
-| `name` | 그룹 이름은 `/`, `.`, `..` 불가(로그 하위 폴더 이름이 된다). 서비스 이름은 영문·숫자·`-`·`_` 만(`{이름.url}` 로 참조되기 때문). 서비스 id 는 `<그룹>/<서비스>` |
-| `cwd` | 작업 폴더. 절대 경로 또는 `~/...`(맨 앞 `~` 만 펼침). 있는 폴더여야 하고, `/` 나 홈 폴더 자체는 쓸 수 없다 |
-| `port` | 이 서비스의 포트. 모든 그룹을 통틀어 중복 불가 |
-| `command` | 실행 명령. 아래 템플릿 사용 가능 |
-| `env` | (선택) 실행 시 추가할 환경변수. 값에 아래 템플릿 사용 가능 |
+| `name` | A group name cannot contain `/` and cannot be `.` or `..` (it becomes the name of a log subfolder). A service name may use only ASCII letters, digits, `-`, and `_` (because it is referenced as `{name.url}`). The service id is `<group>/<service>` |
+| `cwd` | Working folder. An absolute path or `~/...` (only a leading `~` is expanded). The folder must exist, and `/` or the home folder itself cannot be used |
+| `port` | This service's port. Must be unique across all groups |
+| `command` | The command to run. Can use the templates below |
+| `env` | (Optional) Environment variables added at launch. Values can use the templates below |
 
-### 템플릿 규칙 (두 가지뿐)
+### Template rules (only two)
 
-`command` 와 `env` 값 안에서만 치환된다.
+Templates are substituted only inside `command` and `env` values.
 
-1. `{port}` → 그 서비스 자신의 포트. 위 예시의 backend 는 `--port 8002` 로 실행된다.
-2. `{<서비스명>.url}` → **같은 그룹** 안 서비스의 `http://localhost:<포트>`. 위 예시에서
-   frontend 의 `NEXT_PUBLIC_API_BASE_URL` 은 `http://localhost:8002`,
-   backend 의 `CORS_ORIGINS` 는 `http://localhost:3100,http://localhost:5173` 이 된다.
+1. `{port}` → the service's own port. In the example above, backend runs with `--port 8002`.
+2. `{<service>.url}` → `http://localhost:<port>` of a service in the **same group**. In the example above,
+   frontend's `NEXT_PUBLIC_API_BASE_URL` becomes `http://localhost:8002`,
+   and backend's `CORS_ORIGINS` becomes `http://localhost:3100,http://localhost:5173`.
 
-포트의 출처가 이 파일 하나가 되므로 backend 포트를 바꾸면 프론트 env 와 CORS 가 같이 따라간다.
-없는 서비스를 가리키거나 모르는 `{이름}` 을 쓰면 오류다. 그 모양이 아닌 중괄호(`{}`, `{a b}`)는 그대로 둔다.
-그래서 셸 변수 `${HOME}` 도 템플릿으로 읽혀 "알 수 없는 템플릿 {HOME}" 오류가 난다. 셸 변수는 `$HOME` 처럼 중괄호 없이 쓴다.
-`cwd` 는 템플릿을 치환하지 않고, 맨 앞의 `~` 만 홈 폴더로 펼친다(`$HOME`, `~user` 는 안 됨).
-`cwd` 로 `/` 나 홈 폴더 자체는 쓸 수 없다. 상태는 리스너의 작업 폴더로 판정하므로, 그런 폴더에서 도는
-다른 프로그램을 내 서버로 착각해 끄지 않게 막아 둔 것이다.
+Since this file is the single source of ports, changing the backend port makes the frontend env and CORS follow along.
+Pointing at a service that does not exist or using an unknown `{name}` is an error. Braces in any other shape (`{}`, `{a b}`) are left as is.
+That is why the shell variable `${HOME}` is also read as a template and fails with an "Unknown template {HOME} (알 수 없는 템플릿 {HOME})" error. Write shell variables without braces, like `$HOME`.
+`cwd` does not substitute templates; only a leading `~` is expanded to the home folder (`$HOME` and `~user` do not work).
+`/` and the home folder itself cannot be used as `cwd`. Status is determined by the listener's working folder, so this rule keeps the widget from
+mistaking another program running in such a folder for your server and stopping it.
 
-### 설정 오류
+### Configuration errors
 
-JSON 문법 오류(행·열 표시), 모르는 필드, 중복 포트, 없는 폴더, 잘못된 env 이름, 없는 서비스 참조를 검사해
-위젯에 한 줄씩 보여 준다. 위젯은 꺼지지 않으며, 파일을 고치면 다음 조회(또는 새로고침 버튼) 때 다시 목록이 나온다.
+The widget checks for JSON syntax errors (with line and column), unknown fields, duplicate ports, missing folders, invalid env names, and references to services that do not exist,
+and shows each one on its own line. The widget does not quit; once you fix the file, the list comes back on the next poll (or when you press the Refresh (새로고침) button).
 
-### env 주입이 `.env` 를 이기는가
+### Does env injection beat `.env`?
 
-Next.js(`process.env` 가 `.env*` 보다 먼저), Vite(이미 있는 env 가 최우선), pydantic-settings(env > `.env` > 기본값)
-모두 프로세스 env 가 이긴다. 단 주입값은 **값 전체를 교체**한다. 예를 들어 `.env` 의 `CORS_ORIGINS` 에 다른 오리진을
-더 적어 두었다면 위젯으로 띄운 동안은 빠지니, 필요하면 설정의 값에 직접 덧붙인다.
-CORS 오리진이 `localhost` 이므로 브라우저도 `127.0.0.1` 이 아니라 `localhost` 로 접속한다.
+In Next.js (`process.env` comes before `.env*`), Vite (existing env takes top priority), and pydantic-settings (env > `.env` > defaults),
+the process env always wins. However, an injected value **replaces the whole value**. For example, if your `.env` adds more origins to `CORS_ORIGINS`,
+they are dropped while the widget runs the server, so append them to the value in the config yourself if you need them.
+Because the CORS origins use `localhost`, open the app in the browser at `localhost` too, not `127.0.0.1`.
 
-주입 확인은 결과로 보는 것이 확실하다. 브라우저 네트워크 탭에서 API 요청이 `localhost:<백엔드 포트>` 로 가는지 본다.
-JS 번들에 그 주소가 들어 있는지 봐도 되고, 프론트가 API 주소로 CSP 를 만드는 경우 응답 `Content-Security-Policy` 의 `connect-src` 에도 보인다.
-`ps eww` 로 볼 때는 주의한다. 상세의 PID 는 포트를 잡은 자식(`next-server`, uvicorn worker)이고, 이 자식에서는 env 가
-안 보인 사례가 있다. 그때는 부모(`next dev`, uvicorn 리로더)의 `ps eww` 를 본다.
+The reliable way to confirm injection is to look at the result. In the browser's network tab, check that API requests go to `localhost:<backend port>`.
+You can also check that the address is in the JS bundle, and if the frontend builds its CSP from the API address, it also shows up in `connect-src` of the response's `Content-Security-Policy`.
+Be careful when checking with `ps eww`. The PID in the details is the child that holds the port (`next-server`, the uvicorn worker), and there have been cases where the env
+was not visible on that child. In that case, run `ps eww` on the parent (`next dev`, the uvicorn reloader).
 
-## 상태
+## How it works
 
-3초마다 각 포트의 리스너(`lsof`)를 보고 판정한다. 켜기·끄기 직후에는 바로 다시 조회한다. 위젯이 자식 프로세스 핸들에 의존하지 않으므로 터미널에서 띄운 서버도 똑같이 보인다.
+### Status
 
-| 상태 | 의미 |
+Every 3 seconds the widget checks the listener on each port (`lsof`) to determine status. Right after a start or stop it checks again immediately. The widget does not rely on child process handles, so servers started from a terminal show up the same way.
+
+| Status | Meaning |
 |---|---|
-| 실행 중 | 포트에 이 서비스의 프로세스가 리슨 중 |
-| 꺼짐 | 포트에 리스너 없음 |
-| 포트 충돌 | 작업 폴더가 다른 프로세스가 포트를 쓰는 중. 켜기는 막히고, 포트를 쓰는 그 프로세스는 절대 종료하지 않는다. 위젯이 띄운 프로세스가 아직 살아 있으면 끄기로 그 프로세스만 끌 수 있다 |
-| 시작 중 | 위젯이 띄웠고 아직 포트가 열리지 않음 |
-| 시작 실패 | 위젯이 띄운 프로세스가 포트를 열기 전에 끝남. "로그 열기"로 원인 확인 |
+| Running (실행 중) | A process of this service is listening on the port |
+| Stopped (꺼짐) | No listener on the port |
+| Port conflict (포트 충돌) | A process with a different working folder is using the port. Starting is blocked, and the process using the port is never terminated. If a process the widget started is still alive, Stop stops only that process |
+| Starting (시작 중) | The widget started it and the port is not open yet |
+| Failed to start (시작 실패) | A process the widget started exited before opening the port. Check the cause with "Open log (로그 열기)" |
 
-"실행 중" 의 출처
-- **위젯에서 실행**: 이 위젯이 띄운 프로세스 그룹.
-- **외부에서 실행**: 위젯이 띄우지 않았지만 리스너의 작업 폴더가 설정의 `cwd` 와 같은 프로세스(터미널에서 띄운 서버 등).
-  위젯에서 끌 수 있다. 외부 서버는 위젯의 env 주입을 받지 않았으므로, 주입값을 쓰려면 위젯에서 껐다 켠다.
+Origin of "Running (실행 중)"
+- **Started by widget (위젯에서 실행)**: a process group this widget started.
+- **Started externally (외부에서 실행)**: a process the widget did not start, but whose listener's working folder matches `cwd` in the config (such as a server started from a terminal).
+  You can stop it from the widget. An external server did not receive the widget's env injection, so to use the injected values, stop it and start it again from the widget.
 
-## 켜기·끄기 동작
+### Start and stop
 
-- 켜기: `$SHELL -ilc 'exec <command>'` 를 `cwd` 에서 새 세션(프로세스 그룹)으로 실행하고 `env` 를 더한다.
-  로그인+인터랙티브 셸이라 Finder 에서 연 앱도 nvm·pyenv 등의 PATH 를 받는다.
-- 끄기: 위젯이 띄운 것은 프로세스 그룹 전체에 SIGTERM → 3초 뒤에도 남으면 SIGKILL.
-  외부에서 띄운 것은 그 포트를 리슨하는 이 서비스의 프로세스들에 같은 순서로 보낸다.
+- Start: runs `$SHELL -ilc 'exec <command>'` in `cwd` as a new session (process group), adding `env`.
+  Because it is a login + interactive shell, the app gets the PATH from nvm, pyenv, and so on even when it is opened from Finder.
+- Stop: for a server the widget started, sends SIGTERM to the whole process group, then SIGKILL if anything is still left after 3 seconds.
+  For a server started externally, sends the same sequence to this service's processes listening on that port.
 
-## 로그
+### Logs
 
-`~/Library/Logs/com.hdh.localserverwidget/<그룹>/<서비스>.log` (예: `acme/backend.log`).
-켤 때마다 구분선과 명령이 덧붙고 stdout·stderr 가 모두 쌓인다. 서비스 상세의 "로그 열기"로 연다.
-본인만 읽을 수 있는 권한(0600)으로 만들고, 10MB 를 넘으면 켤 때 `<서비스>.log.1` 로 넘기고 새로 쓴다.
+`~/Library/Logs/com.hdh.localserverwidget/<group>/<service>.log` (e.g. `acme/backend.log`).
+Each start appends a separator line and the command, and both stdout and stderr are collected. Open it with "Open log (로그 열기)" in the service details.
+The file is created readable only by you (0600), and when it is over 10MB it is rotated to `<service>.log.1` on start and a new file is written.
 
-## 보안 주의
+## Security notes
 
-- **개발 서버는 loopback 에만 연다.** uvicorn 과 Vite 는 기본이 `127.0.0.1`/`localhost` 지만 `next dev` 는 기본이
-  모든 네트워크 인터페이스라, 그대로 두면 같은 와이파이의 누구나 개발 서버와 소스맵에 접근한다.
-  위 예시처럼 `-H 127.0.0.1` 을 붙인다. 휴대폰 등 다른 기기에서 접속해 테스트할 때만 잠시 빼고, 그때는 macOS 방화벽을 켠다.
-- **`services.json` 에 비밀값을 넣지 않는다.** 이 파일은 평문이고, `env` 값은 항상 위에 뜨는 위젯 상세와 설정 창에
-  그대로 보인다(화면 공유 중 노출). 비밀번호·토큰·API 키는 각 프로젝트의 `.env` 에 둔다.
-- **믿을 수 있는 폴더만 추가한다.** 설정 창에서 폴더를 고르면 그 폴더의 `package.json` 과 `.env*`(변수 이름만, 1MB 이하 일반 파일만)를
-  읽고, 켜면 그 폴더 안의 실행 파일(`.venv/bin/uvicorn`, `./node_modules/.bin/next`·`vite`)을 내 권한으로 실행한다.
-- **설정 저장은 설정 창에서만 된다.** 설정 읽기·저장·폴더 선택·감지는 설정 창만, 켜기·끄기·로그 열기는 위젯 창만 호출할 수 있게
-  Rust 가 호출한 창을 확인한다. 설정 창을 연 뒤 파일이 밖에서 바뀌었으면 저장을 거부하니 "파일에서 다시 불러오기" 후 다시 고친다.
-- **로그에는 서버 출력이 그대로 남는다.** OAuth 콜백의 `code`·`state` 같은 값도 남을 수 있다. 파일 권한은 본인 전용이지만
-  Time Machine 백업에는 포함된다.
-- 설정 파일을 고칠 수 있는 사람은 그 명령을 내 권한으로 실행할 수 있다. 설정 폴더는 본인만 쓸 수 있는 곳(`~/Library`)에 있다.
+- **Bind dev servers to loopback only.** uvicorn and Vite default to `127.0.0.1`/`localhost`, but `next dev` defaults to
+  all network interfaces, so if you leave it that way, anyone on the same Wi-Fi can reach your dev server and its source maps.
+  Add `-H 127.0.0.1` as in the example above. Remove it only briefly when you test from another device such as a phone, and turn on the macOS firewall while you do.
+- **Do not put secrets in `services.json`.** The file is plain text, and `env` values are shown as is in the always-on-top widget details and the settings window
+  (exposed during screen sharing). Keep passwords, tokens, and API keys in each project's `.env`.
+- **Only add folders you trust.** When you pick a folder in the settings window, the app reads that folder's `package.json` and `.env*` (variable names only, regular files of 1MB or less only),
+  and when you start a server it runs executables inside that folder (`.venv/bin/uvicorn`, `./node_modules/.bin/next`/`vite`) with your privileges.
+- **Settings can be saved only from the settings window.** Rust checks which window made each call, so reading and saving settings, picking folders, and detection can be called only from the settings window,
+  and start, stop, and open log only from the widget window. If the file changed outside the app after you opened the settings window, saving is refused; use "Reload from file (파일에서 다시 불러오기)" and make your edits again.
+- **Logs keep server output as is.** Values such as the `code` and `state` of an OAuth callback can end up there. The files are readable only by you, but
+  they are included in Time Machine backups.
+- Anyone who can edit the config file can run its commands with your privileges. The config folder is in a location only you can write to (`~/Library`).
 
-## 알려진 한계
+## Known limitations
 
-- 전체화면 앱 위에는 뜨지 않는다.
-- 다른 macOS 계정이 같은 포트를 잡으면 `lsof` 로 보이지 않아 "포트 충돌" 로 표시되지 않는다(그 프로세스에 신호를 보낼 수도 없다).
-- 위젯이 띄운 기록은 메모리에만 있다. 위젯을 다시 켜면 그 서버들은 "외부에서 실행" 으로 보인다(끄기는 된다).
-- 창 위치는 정상 종료(헤더 닫기 버튼, Cmd+Q, Dock 에서 종료) 때만 저장된다. `pnpm tauri dev` 를 Ctrl+C 로 끄면 저장되지 않는다.
-- 명령은 사용자 로그인 셸(`-ilc`)로 실행되므로 rc 파일을 읽는다. rc 가 느리면 시작도 느리고, rc 가 같은 이름의 env 를 export 하면 그 값이 이긴다.
-- `command` 앞에 `FOO=1 cmd` 처럼 환경변수를 붙이면 `exec` 때문에 "command not found: FOO=1" 로 실패한다. 환경변수는 `env` 필드로 준다.
-- `command`·`env` 안의 `{이름}` 은 모두 템플릿으로 읽는다. 셸 변수 `${HOME}` 은 "알 수 없는 템플릿" 오류가 나므로 `$HOME` 처럼 중괄호 없이 쓴다.
-- `command` 는 `$SHELL -ilc "exec <command>"`(새 세션, setsid)로 실행된다. 그래서 `a && b`, `a; b` 처럼 이어 쓰면 `a` 만 실행되고 `b` 는 실행되지 않는다.
-  여러 단계가 필요하면 `sh -c 'a && b'` 처럼 감싼다.
-- 로그인 셸이 뜨는 데 1초쯤 걸린다. 켠 직후 "시작 중" 이 잠깐 보이는 것은 정상이다.
+- The widget does not appear over full-screen apps.
+- If another macOS account holds the same port, `lsof` cannot see it, so it is not shown as "Port conflict (포트 충돌)" (and the widget cannot send signals to that process either).
+- The record of which servers the widget started lives only in memory. After you restart the widget, those servers show as "Started externally (외부에서 실행)" (stopping them still works).
+- The window position is saved only on a normal quit (the header close button, Cmd+Q, or Quit from the Dock). It is not saved when you stop `pnpm tauri dev` with Ctrl+C.
+- Commands run in your login shell (`-ilc`), so your rc files are read. If your rc is slow, starting is slow too, and if your rc exports an env var with the same name, that value wins.
+- Prefixing `command` with environment variables, like `FOO=1 cmd`, fails with "command not found: FOO=1" because of `exec`. Pass environment variables through the `env` field.
+- Every `{name}` inside `command` and `env` is read as a template. The shell variable `${HOME}` causes an "Unknown template (알 수 없는 템플릿)" error, so write it without braces, like `$HOME`.
+- `command` runs as `$SHELL -ilc "exec <command>"` (new session, setsid). So if you chain commands like `a && b` or `a; b`, only `a` runs and `b` does not.
+  If you need several steps, wrap them like `sh -c 'a && b'`.
+- The login shell takes about a second to start. Seeing "Starting (시작 중)" briefly right after a start is normal.
 
-## 개발
+## Build from source
+
+Requirements: Node + pnpm, Xcode Command Line Tools, Rust (stable, install with [rustup](https://rustup.rs)).
+
+```sh
+pnpm install
+pnpm tauri dev      # run in development (the first build takes a few minutes)
+pnpm tauri build    # release app → src-tauri/target/release/bundle/macos/
+```
+
+While the app runs, its icon shows in the Dock. Quit the widget with the close button in its header or from the Dock.
+Servers the widget started keep running after you quit the widget.
+
+### Development
 
 ```sh
 pnpm test           # Vitest (tests/unit)
 pnpm lint           # ESLint
-pnpm typecheck      # tsc (앱 + 테스트 설정)
+pnpm typecheck      # tsc (app + test configs)
 
 cd src-tauri
-cargo test          # Rust 단위·통합 테스트
-cargo clippy --all-targets -- -D warnings   # Rust 린트 (rustup component add clippy)
+cargo test          # Rust unit and integration tests
+cargo clippy --all-targets -- -D warnings   # Rust lint (rustup component add clippy)
 rustfmt --edition 2024 --check src/*.rs examples/*.rs
 
-# 위젯 없이 실제 설정으로 동작 확인하는 CLI
+# CLI to check behavior with a real config, without the widget
 cargo run --example smoke -- <config.json> <log_dir> status
-cargo run --example smoke -- <config.json> <log_dir> start|stop|cycle <그룹/서비스>
+cargo run --example smoke -- <config.json> <log_dir> start|stop|cycle <group/service>
 ```
 
-`smoke` 의 `start` 로 띄운 서버는 smoke 가 끝나도 계속 돈다(위젯과 같다). 다음 실행에서는 "외부" 로 보인다.
+Servers started with `smoke`'s `start` keep running after smoke exits (same as the widget). On the next run they show as external.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
