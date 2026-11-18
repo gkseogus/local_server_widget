@@ -15,6 +15,12 @@ export const SERVICE_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
 /** 값 전체가 `{이름.url}` 하나인지 (Rust 템플릿 식별자 = `[A-Za-z0-9_-]+`) */
 export const URL_REF_PATTERN = /^\{([A-Za-z0-9_-]+)\.url\}$/;
 
+/** API 주소 값: `{이름.url}` 뒤에 경로가 붙을 수 있다 (예: `{backend.url}/api`) */
+export const API_REF_PATTERN = /^\{([A-Za-z0-9_-]+)\.url\}(\/[^\s,{}]*)?$/;
+
+/** 연결 칸의 경로 입력: 비우거나 `/` 로 시작, 공백·쉼표·중괄호 불가 */
+export const API_PATH_PATTERN = /^(\/[^\s,{}]*)?$/;
+
 /** `{port}`, `{이름}`, `{이름.url}` 모양의 템플릿 토큰 */
 export const TEMPLATE_TOKEN_PATTERN = /\{([A-Za-z0-9_-]+)(\.url)?\}/g;
 
@@ -116,6 +122,10 @@ export const CONNECTION_TEXT = {
   apiHelper: "고르면 아래 변수에 그 서버 주소가 들어가요. 백엔드 포트를 바꿔도 따라가요.",
   apiNeedKey: "주소를 넣을 변수 이름을 먼저 추가하세요.",
   apiKeysLabel: "주소를 넣을 변수",
+  pathLabel: "주소 뒤 경로",
+  pathPlaceholder: "예: /api",
+  pathHelper: "API 가 /api 같은 경로 아래에 있으면 적어요. 없으면 비워 두세요.",
+  pathInvalid: "경로는 / 로 시작해야 하고 공백·쉼표·중괄호는 쓸 수 없어요.",
   apiKeyInput: "API 주소 변수 추가",
   apiKeyPlaceholder: "예: VITE_API_URL",
   addKey: "추가",
