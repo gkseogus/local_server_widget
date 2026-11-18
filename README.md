@@ -51,7 +51,7 @@ Click the settings icon in the widget header (or "Add server (서버 추가하�
      If the API lives under a path such as `/api`, enter it in "Path after address (주소 뒤 경로)". The value then becomes `{backend.url}/api`,
      and the path is kept when you switch backends. Env values already written in the form `{name.url}/path` are also read back and shown as connections.
    - Backend (FastAPI): check "Frontends allowed to connect (CORS) (이 서버에 접속을 허용할 프론트 (CORS))", and their addresses go into `CORS_ORIGINS` (the detected name), separated by commas.
-   - From `.env*` files, only variable **names** are read; values are never read or kept.
+   - From `.env*` files, only variable **names** are kept; values are not kept.
 3. In **Preview (실행되는 모습)**, check the command and env with templates replaced by real ports, then **Save (저장)** (⌘S).
    Problems such as duplicate names or ports, empty commands, and references to missing servers are shown before saving, under the field and in the bottom bar ("n issues to fix (고칠 곳 n개)"), and saving is blocked.
    Saving replaces the file atomically, and only after the whole config passes validation.
