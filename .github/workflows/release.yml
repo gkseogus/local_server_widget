@@ -1,0 +1,45 @@
+name: release
+
+# v0.1.0 같은 태그를 밀면 유니버설(Apple Silicon + Intel) .dmg 를 빌드해 draft 릴리스에 올린다.
+# 릴리스는 draft 로만 만들어지므로, 내려받아 확인한 뒤 GitHub 에서 직접 Publish 한다.
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Local Server Widget ${{ github.ref_name }}
+          releaseBody: |
+            Download the `.dmg`, open it, and drag **Local Server Widget** to Applications.
+
+            The app is not notarized by Apple, so macOS blocks the first launch.
+            Open it once, then go to System Settings → Privacy & Security and click **Open Anyway**,
+            or run `xattr -dr com.apple.quarantine "/Applications/Local Server Widget.app"`.
+          releaseDraft: true
+          prerelease: false
+          args: --target universal-apple-darwin
